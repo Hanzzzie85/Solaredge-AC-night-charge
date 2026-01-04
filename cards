@@ -1,0 +1,27 @@
+## CREATED 3 CARDS FOR THIS, STILL OPTIMIZING ##
+
+#1
+
+show_name: true
+show_icon: true
+type: button
+entity: input_boolean.ac_nacht_laden
+name: AC Nachtladen
+icon: mdi:battery-charging
+tap_action:
+  action: toggle
+
+#2
+
+type: custom:mushroom-entity-card
+entity: sensor.status_nachtladen
+grid_options:
+  columns: 6
+  rows: 2
+
+#3 
+
+type: entities
+entities:
+  - entity: input_number.ac_charge_target
+    name: Doel-SOC
