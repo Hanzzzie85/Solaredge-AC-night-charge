@@ -1,0 +1,88 @@
+## BELOW IS THE SCRIPT YOU NEED TO ENTER IN THE YAML ##
+###### HELPERS MIGHT NEED TO BE CREATED MANUALLY ######
+
+
+alias: AC Nachtladen
+description: Nachtladen tussen 22:00 en 06:30 met target SOC en dynamische limieten
+triggers:
+  - entity_id: input_boolean.ac_nacht_laden
+    to: "on"
+    trigger: state
+  - minutes: /1
+    trigger: time_pattern
+conditions:
+  - condition: state
+    entity_id: input_boolean.ac_nacht_laden
+    state: "on"
+  - condition: template
+    value_template: >
+      {% set now = now().time() %} {% set start =
+      strptime("22:00:00","%H:%M:%S").time() %} {% set end =
+      strptime("06:30:00","%H:%M:%S").time() %} {{ now >= start or now <= end }}
+actions:
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: >
+              {% set soc = states('sensor.solaredge_i1_b1_state_of_energy') |
+              float(0) %} {% set target =
+              states('input_number.ac_charge_target') | float(0) %} {{ target >
+              0 and soc >= target }}
+        sequence:
+          - target:
+              entity_id:
+                - select.solaredge_i1_storage_default_mode
+                - select.solaredge_i1_storage_command_mode
+            data:
+              option: Maximize Self Consumption
+            action: select.select_option
+          - target:
+              entity_id: number.solaredge_i1_storage_charge_limit
+            data:
+              value: 5000
+            action: number.set_value
+          - target:
+              entity_id: input_boolean.ac_nacht_laden
+            action: input_boolean.turn_off
+      - conditions:
+          - condition: template
+            value_template: >
+              {% set now = now().time() %} {% set end =
+              strptime("06:30:00","%H:%M:%S").time() %} {{ now > end }}
+        sequence:
+          - target:
+              entity_id:
+                - select.solaredge_i1_storage_default_mode
+                - select.solaredge_i1_storage_command_mode
+            data:
+              option: Maximize Self Consumption
+            action: select.select_option
+          - target:
+              entity_id: number.solaredge_i1_storage_charge_limit
+            data:
+              value: 5000
+            action: number.set_value
+          - target:
+              entity_id: input_boolean.ac_nacht_laden
+            action: input_boolean.turn_off
+      - conditions:
+          - condition: template
+            value_template: >
+              {% set soc = states('sensor.solaredge_i1_b1_state_of_energy') |
+              float(0) %} {% set target =
+              states('input_number.ac_charge_target') | float(0) %} {{ target >
+              0 and soc < target }}
+        sequence:
+          - target:
+              entity_id:
+                - select.solaredge_i1_storage_default_mode
+                - select.solaredge_i1_storage_command_mode
+            data:
+              option: Charge from Solar Power and Grid
+            action: select.select_option
+          - target:
+              entity_id: number.solaredge_i1_storage_charge_limit
+            data:
+              value: 1250
+            action: number.set_value
+mode: restart
